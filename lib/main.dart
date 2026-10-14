@@ -1,4 +1,4 @@
-import 'package:file_pick_animation/file_pick_animation.dart';
+import 'package:file_pick_animation/test.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -17,14 +17,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFEE5A24)),
         useMaterial3: true,
       ),
-      home: BasketballFilePicker(
-        onFileSelected: (SelectedFileData file) {
-          debugPrint("Selected file: ${file.name} (${file.size})");
-        },
-        onUploadCompleted: (SelectedFileData file) {
-          debugPrint("Upload finished for: ${file.name}");
-        },
-      ),
+      home: const Test(),
     );
   }
 }
