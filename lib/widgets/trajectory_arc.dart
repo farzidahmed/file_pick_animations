@@ -8,6 +8,7 @@ class TrajectoryArc extends StatelessWidget {
   final Offset targetPos;
   final Animation<double> flightAnimation;
   final bool isFlying;
+  final Color dotColor;
 
   const TrajectoryArc({
     super.key,
@@ -15,6 +16,7 @@ class TrajectoryArc extends StatelessWidget {
     required this.targetPos,
     required this.flightAnimation,
     required this.isFlying,
+    this.dotColor = const Color(0xFFFA8B60),
   });
 
   @override
@@ -27,7 +29,7 @@ class TrajectoryArc extends StatelessWidget {
           p0: startPos,
           p1: p1,
           p2: targetPos,
-          dotColor: const Color(0xFFFA8B60),
+          dotColor: dotColor,
           activeProgress: 0.0,
         ),
       );
@@ -41,7 +43,7 @@ class TrajectoryArc extends StatelessWidget {
             p0: startPos,
             p1: p1,
             p2: targetPos,
-            dotColor: const Color(0xFFFA8B60),
+            dotColor: dotColor,
             activeProgress: flightAnimation.value,
           ),
         );

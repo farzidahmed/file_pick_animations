@@ -9,6 +9,10 @@ class UploadStatusCard extends StatelessWidget {
   final ShotState shotState;
   final Animation<double> uploadAnimation;
   final VoidCallback onPickNewFile;
+  final Color primaryColor;
+  final Color completedColor;
+  final String uploadingText;
+  final String completedText;
 
   const UploadStatusCard({
     super.key,
@@ -17,6 +21,10 @@ class UploadStatusCard extends StatelessWidget {
     required this.shotState,
     required this.uploadAnimation,
     required this.onPickNewFile,
+    this.primaryColor = const Color(0xFFEE5A24),
+    this.completedColor = const Color(0xFF2E7D32),
+    this.uploadingText = "Uploading...",
+    this.completedText = "Completed",
   });
 
   @override
@@ -81,21 +89,19 @@ class UploadStatusCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (isDone) ...[
-                      const Icon(
+                      Icon(
                         Icons.check_circle_rounded,
                         size: 15,
-                        color: Color(0xFF2E7D32),
+                        color: completedColor,
                       ),
                       const SizedBox(width: 4),
                     ],
                     Text(
-                      isDone ? "Completed" : "Uploading...",
+                      isDone ? completedText : uploadingText,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: isDone
-                            ? const Color(0xFF2E7D32)
-                            : const Color(0xFF8A94A6),
+                        color: isDone ? completedColor : const Color(0xFF8A94A6),
                       ),
                     ),
                   ],
@@ -112,9 +118,7 @@ class UploadStatusCard extends StatelessWidget {
                         minHeight: 5,
                         backgroundColor: const Color(0xFFEDF1F7),
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          isDone
-                              ? const Color(0xFF2E7D32)
-                              : const Color(0xFFEE5A24),
+                          isDone ? completedColor : primaryColor,
                         ),
                       ),
                     );

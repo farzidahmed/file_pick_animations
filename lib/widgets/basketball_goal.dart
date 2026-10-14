@@ -7,12 +7,14 @@ class BasketballGoal extends StatelessWidget {
   final AnimationController netController;
   final double hoopWidth;
   final double hoopHeight;
+  final Color primaryColor;
 
   const BasketballGoal({
     super.key,
     required this.netController,
     required this.hoopWidth,
     required this.hoopHeight,
+    this.primaryColor = const Color(0xFFEE5A24),
   });
 
   @override
@@ -30,7 +32,7 @@ class BasketballGoal extends StatelessWidget {
               color: Colors.white,
               borderRadius: BorderRadius.circular(5),
               border: Border.all(
-                color: const Color(0xFFEE5A24),
+                color: primaryColor,
                 width: 3.5,
               ),
               boxShadow: [
@@ -50,7 +52,7 @@ class BasketballGoal extends StatelessWidget {
           child: Container(
             width: 16,
             height: 8,
-            color: const Color(0xFFEE5A24),
+            color: primaryColor,
           ),
         ),
 
@@ -67,6 +69,7 @@ class BasketballGoal extends StatelessWidget {
             width: hoopWidth,
             height: hoopHeight,
             frontOnly: false,
+            rimColor: primaryColor,
           ),
         ),
       ],

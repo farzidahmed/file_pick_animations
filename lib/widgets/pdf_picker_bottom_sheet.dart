@@ -1,20 +1,43 @@
 import 'package:flutter/material.dart';
+import '../models/sample_file.dart';
 
-/// Bottom Sheet for picking PDF from device or choosing sample files.
+/// Bottom Sheet for picking files from device or choosing from preset samples.
 class PdfPickerBottomSheet extends StatelessWidget {
   final String currentFileName;
   final void Function(String name, String size) onPdfSelected;
   final VoidCallback onBrowseDevice;
+  final Color primaryColor;
+  final List<SampleFile>? sampleFiles;
+  final String sheetTitle;
+  final String sheetSubtitle;
+  final String browseDeviceText;
+  final String browseDeviceSubtitle;
+  final String sampleSectionTitle;
 
   const PdfPickerBottomSheet({
     super.key,
     required this.currentFileName,
     required this.onPdfSelected,
     required this.onBrowseDevice,
+    this.primaryColor = const Color(0xFFEE5A24),
+    this.sampleFiles,
+    this.sheetTitle = "Select File",
+    this.sheetSubtitle = "Choose a file from your device or pick a sample document",
+    this.browseDeviceText = "Browse Files on Device",
+    this.browseDeviceSubtitle = "Select any supported file from local storage",
+    this.sampleSectionTitle = "Or select sample document:",
   });
+
+  static const List<SampleFile> _defaultSamples = [
+    SampleFile(name: "final_final_v7.pdf", size: "2.4 MB"),
+    SampleFile(name: "Portfolio_Resume_2026.pdf", size: "1.8 MB"),
+    SampleFile(name: "Business_Contract_v3.pdf", size: "3.5 MB"),
+  ];
 
   @override
   Widget build(BuildContext context) {
+    final effectiveSamples = sampleFiles ?? _defaultSamples;
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -33,18 +56,18 @@ class PdfPickerBottomSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              "Select PDF File",
-              style: TextStyle(
+            Text(
+              sheetTitle,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF1E232A),
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
-              "Choose a PDF file from your device or pick a sample document",
-              style: TextStyle(fontSize: 13, color: Color(0xFF8A94A6)),
+            Text(
+              sheetSubtitle,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF8A94A6)),
             ),
             const SizedBox(height: 18),
 
@@ -55,75 +78,68 @@ class PdfPickerBottomSheet extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEE5A24).withValues(alpha: 0.08),
+                  color: primaryColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: const Color(0xFFEE5A24).withValues(alpha: 0.3),
+                    color: primaryColor.withValues(alpha: 0.3),
                   ),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
                     CircleAvatar(
                       radius: 20,
-                      backgroundColor: Color(0xFFEE5A24),
-                      child: Icon(Icons.folder_open_rounded, color: Colors.white, size: 20),
+                      backgroundColor: primaryColor,
+                      child: const Icon(Icons.folder_open_rounded, color: Colors.white, size: 20),
                     ),
-                    SizedBox(width: 14),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Browse Files on Device",
-                            style: TextStyle(
+                            browseDeviceText,
+                            style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF1E232A),
                             ),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Text(
-                            "Select any .pdf file from local storage",
-                            style: TextStyle(fontSize: 12, color: Color(0xFF8A94A6)),
+                            browseDeviceSubtitle,
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF8A94A6)),
                           ),
                         ],
                       ),
                     ),
-                    Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Color(0xFFEE5A24)),
+                    Icon(Icons.arrow_forward_ios_rounded, size: 16, color: primaryColor),
                   ],
                 ),
               ),
             ),
 
-            const SizedBox(height: 18),
-            const Text(
-              "Or select sample PDF:",
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF5A6679),
+            if (effectiveSamples.isNotEmpty) ...[
+              const SizedBox(height: 18),
+              Text(
+                sampleSectionTitle,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF5A6679),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
+              const SizedBox(height: 8),
 
-            SamplePdfTile(
-              name: "final_final_v7.pdf",
-              size: "2.4 MB",
-              isSelected: currentFileName == "final_final_v7.pdf",
-              onTap: () => onPdfSelected("final_final_v7.pdf", "2.4 MB"),
-            ),
-            SamplePdfTile(
-              name: "Portfolio_Resume_2026.pdf",
-              size: "1.8 MB",
-              isSelected: currentFileName == "Portfolio_Resume_2026.pdf",
-              onTap: () => onPdfSelected("Portfolio_Resume_2026.pdf", "1.8 MB"),
-            ),
-            SamplePdfTile(
-              name: "Business_Contract_v3.pdf",
-              size: "3.5 MB",
-              isSelected: currentFileName == "Business_Contract_v3.pdf",
-              onTap: () => onPdfSelected("Business_Contract_v3.pdf", "3.5 MB"),
-            ),
+              ...effectiveSamples.map(
+                (sample) => SamplePdfTile(
+                  name: sample.name,
+                  size: sample.size,
+                  isSelected: currentFileName == sample.name,
+                  primaryColor: primaryColor,
+                  onTap: () => onPdfSelected(sample.name, sample.size),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -136,6 +152,7 @@ class SamplePdfTile extends StatelessWidget {
   final String name;
   final String size;
   final bool isSelected;
+  final Color primaryColor;
   final VoidCallback onTap;
 
   const SamplePdfTile({
@@ -143,6 +160,7 @@ class SamplePdfTile extends StatelessWidget {
     required this.name,
     required this.size,
     required this.isSelected,
+    this.primaryColor = const Color(0xFFEE5A24),
     required this.onTap,
   });
 
@@ -156,13 +174,11 @@ class SamplePdfTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFFEE5A24).withValues(alpha: 0.08)
+              ? primaryColor.withValues(alpha: 0.08)
               : const Color(0xFFF7F9FC),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected
-                ? const Color(0xFFEE5A24)
-                : const Color(0xFFE2E7EE),
+            color: isSelected ? primaryColor : const Color(0xFFE2E7EE),
           ),
         ),
         child: Row(
@@ -186,7 +202,7 @@ class SamplePdfTile extends StatelessWidget {
             ),
             if (isSelected) ...[
               const SizedBox(width: 8),
-              const Icon(Icons.check_circle_rounded, color: Color(0xFFEE5A24), size: 18),
+              Icon(Icons.check_circle_rounded, color: primaryColor, size: 18),
             ],
           ],
         ),

@@ -6,12 +6,14 @@ class HoopRim extends StatelessWidget {
   final double width;
   final double height;
   final bool frontOnly;
+  final Color rimColor;
 
   const HoopRim({
     super.key,
     required this.width,
     required this.height,
     required this.frontOnly,
+    this.rimColor = const Color(0xFFEE5A24),
   });
 
   @override
@@ -19,7 +21,7 @@ class HoopRim extends StatelessWidget {
     return CustomPaint(
       size: Size(width, height),
       painter: HoopRimPainter(
-        rimColor: const Color(0xFFEE5A24),
+        rimColor: rimColor,
         frontOnly: frontOnly,
       ),
     );

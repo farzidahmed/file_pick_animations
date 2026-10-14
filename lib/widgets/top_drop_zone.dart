@@ -9,6 +9,10 @@ class TopDropZone extends StatelessWidget {
   final double hoopWidth;
   final double hoopHeight;
   final VoidCallback onPickPdf;
+  final Color primaryColor;
+  final String title;
+  final String subtitle;
+  final String badgeText;
 
   const TopDropZone({
     super.key,
@@ -17,6 +21,10 @@ class TopDropZone extends StatelessWidget {
     required this.hoopWidth,
     required this.hoopHeight,
     required this.onPickPdf,
+    this.primaryColor = const Color(0xFFEE5A24),
+    this.title = "Drop files here",
+    this.subtitle = "or take the shot",
+    this.badgeText = "Tap to Pick",
   });
 
   @override
@@ -29,7 +37,7 @@ class TopDropZone extends StatelessWidget {
       ),
       child: CustomPaint(
         painter: DashedRectPainter(
-          color: isAimed ? const Color(0xFFEE5A24) : const Color(0xFFCAD3DF),
+          color: isAimed ? primaryColor : const Color(0xFFCAD3DF),
           strokeWidth: 2.0,
           dashWidth: 7.0,
           dashSpace: 5.0,
@@ -48,13 +56,13 @@ class TopDropZone extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEE5A24).withValues(alpha: 0.08),
+                        color: primaryColor.withValues(alpha: 0.08),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.file_upload_outlined,
                         size: 32,
-                        color: Color(0xFFEE5A24),
+                        color: primaryColor,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -62,9 +70,9 @@ class TopDropZone extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text(
-                          "Drop files here",
-                          style: TextStyle(
+                        Text(
+                          title,
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                             color: Color(0xFF1E232A),
@@ -75,24 +83,24 @@ class TopDropZone extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEE5A24).withValues(alpha: 0.12),
+                            color: primaryColor.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Text(
-                            "Tap to Pick",
+                          child: Text(
+                            badgeText,
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFFEE5A24),
+                              color: primaryColor,
                             ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 2),
-                    const Text(
-                      "or take the shot",
-                      style: TextStyle(
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
                         fontSize: 13,
                         color: Color(0xFF8A94A6),
                         fontWeight: FontWeight.w400,
@@ -109,6 +117,7 @@ class TopDropZone extends StatelessWidget {
                 netController: netController,
                 hoopWidth: hoopWidth,
                 hoopHeight: hoopHeight,
+                primaryColor: primaryColor,
               ),
             ),
           ],

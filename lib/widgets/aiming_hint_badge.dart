@@ -3,14 +3,23 @@ import 'package:flutter/material.dart';
 /// Aiming guidance chip at the bottom of the screen.
 class AimingHintBadge extends StatelessWidget {
   final bool isAimedAtBasket;
+  final String lockedPrompt;
+  final String aimPrompt;
+  final Color primaryColor;
+  final Color lockedColor;
 
-  const AimingHintBadge({super.key, required this.isAimedAtBasket});
+  const AimingHintBadge({
+    super.key,
+    required this.isAimedAtBasket,
+    this.lockedPrompt = "Target locked! Release or tap to shoot 🏀",
+    this.aimPrompt = "Drag the document to aim at the basket",
+    this.primaryColor = const Color(0xFFEE5A24),
+    this.lockedColor = const Color(0xFF2E7D32),
+  });
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = isAimedAtBasket
-        ? const Color(0xFF2E7D32)
-        : const Color(0xFFEE5A24);
+    final statusColor = isAimedAtBasket ? lockedColor : primaryColor;
 
     return Center(
       child: Container(
@@ -38,15 +47,11 @@ class AimingHintBadge extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              isAimedAtBasket
-                  ? "Target locked! Release or tap to shoot 🏀"
-                  : "Drag the PDF to aim at the basket",
+              isAimedAtBasket ? lockedPrompt : aimPrompt,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: isAimedAtBasket
-                    ? const Color(0xFF2E7D32)
-                    : const Color(0xFF5A6679),
+                color: isAimedAtBasket ? lockedColor : const Color(0xFF5A6679),
               ),
             ),
           ],
