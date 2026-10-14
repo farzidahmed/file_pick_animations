@@ -13,8 +13,8 @@ class Test extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const BasketballFilePicker(
-      primaryColor: Colors.black,
-      trajectoryDotColor: Colors.black12,
+      primaryColor: Color(0xFFEE5A24),
+      trajectoryDotColor: Color(0xFFFA8B60),
     );
   }
 }
