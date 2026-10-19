@@ -22,21 +22,15 @@ class PdfPickerBottomSheet extends StatelessWidget {
     this.primaryColor = const Color(0xFFEE5A24),
     this.sampleFiles,
     this.sheetTitle = "Select File",
-    this.sheetSubtitle = "Choose a file from your device or pick a sample document",
+    this.sheetSubtitle = "Choose a file from your device to upload",
     this.browseDeviceText = "Browse Files on Device",
     this.browseDeviceSubtitle = "Select any supported file from local storage",
     this.sampleSectionTitle = "Or select sample document:",
   });
 
-  static const List<SampleFile> _defaultSamples = [
-    SampleFile(name: "final_final_v7.pdf", size: "2.4 MB"),
-    SampleFile(name: "Portfolio_Resume_2026.pdf", size: "1.8 MB"),
-    SampleFile(name: "Business_Contract_v3.pdf", size: "3.5 MB"),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final effectiveSamples = sampleFiles ?? _defaultSamples;
+    final effectiveSamples = sampleFiles ?? const [];
 
     return SafeArea(
       child: Padding(

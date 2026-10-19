@@ -35,11 +35,13 @@ class FlyingPdfDocument extends StatelessWidget {
         return Positioned(
           left: pos.dx - 35,
           top: pos.dy - 45,
-          child: Transform.rotate(
-            angle: angle,
-            child: Transform.scale(
-              scale: scale,
-              child: child,
+          child: RepaintBoundary(
+            child: Transform.rotate(
+              angle: angle,
+              child: Transform.scale(
+                scale: scale,
+                child: child,
+              ),
             ),
           ),
         );

@@ -36,6 +36,16 @@ A delightful, gamified **Basketball Shoot & Drop** file upload animation for Flu
 
 ---
 
+## 🚀 What's New in v0.0.2
+
+- ⚡ **Frictionless Auto-Shoot (`autoShootOnSelect`)**: File automatically takes the shot into the hoop immediately upon being picked from the device or sheet.
+- 📡 **Real-Time Upload Progress Stream (`uploadProgressStream`)**: Seamlessly connect your Dio / HTTP / Firebase upload stream (`0.0` - `1.0`) to show live dynamic percentages (`Uploading... 68%`).
+- 🏎️ **Optimized GPU Performance**: Isolated heavy animations using `RepaintBoundary` to maintain consistent 60–120 FPS even on budget Android and iOS devices.
+- 🎯 **Clean Initial State**: Launches with an intuitive "Pick File" trigger without misleading pre-selected fake documents.
+- 📱 **Zero Overflow Risk**: Hardened responsive layout in `UploadStatusCard` to perfectly scale down to small 320px mobile viewports.
+
+---
+
 ## 🚀 Getting Started
 
 Add `file_pick_animation` to your `pubspec.yaml`:
@@ -48,7 +58,7 @@ Or add it directly under `dependencies` in your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  file_pick_animation: ^0.0.1
+  file_pick_animation: ^0.0.2
 ```
 
 Import it in your Dart code:
@@ -155,14 +165,39 @@ BasketballFilePicker(
 | `completedText` | `String` | `"Completed"` | Label when progress reaches 100%. |
 | `allowedExtensions` | `List<String>` | `['pdf']` | Allowed file formats for device picker. |
 | `sampleFiles` | `List<SampleFile>?` | `Default Samples` | Sample files list (pass `[]` to hide). |
+| `autoShootOnSelect` | `bool` | `false` | Automatically shoot into the basket without requiring manual aiming. |
+| `uploadProgressStream` | `Stream<double>?` | `null` | Real-time upload progress stream (`0.0` to `1.0`). Overrides simulated timer. |
 | `flightDuration` | `Duration` | `1000ms` | Duration of the projectile arc flight. |
-| `uploadDuration` | `Duration` | `2200ms` | Duration of upload progress animation. |
+| `uploadDuration` | `Duration` | `2200ms` | Duration of upload progress animation (used when no stream provided). |
 | `showAppBar` | `bool` | `true` | Show or hide the default AppBar. |
 | `appBarTitle` | `String` | `"Drop & Shoot Upload"` | Title for the default AppBar. |
 | `customAppBar` | `PreferredSizeWidget?` | `null` | Optional custom AppBar widget. |
 | `showDemoButton` | `bool` | `true` | Shows basketball icon button for demo shot. |
 | `onFileSelected` | `ValueChanged<SelectedFileData>?` | `null` | Called when a file is picked. |
 | `onUploadCompleted` | `ValueChanged<SelectedFileData>?` | `null` | Called when upload completes. |
+
+---
+
+### 4. Real-Time Upload Progress Stream (e.g., with Dio / HTTP)
+
+Pass your actual backend upload stream directly to sync the progress bar with real-world network bytes:
+
+```dart
+final StreamController<double> uploadStream = StreamController<double>.broadcast();
+
+BasketballFilePicker(
+  autoShootOnSelect: true, // Direct frictionless auto-shot!
+  uploadProgressStream: uploadStream.stream,
+  onUploadCompleted: (file) {
+    debugPrint("File ${file.name} successfully uploaded!");
+  },
+);
+
+// In your Dio / HTTP upload callback:
+void onSendProgress(int sent, int total) {
+  uploadStream.add(sent / total);
+}
+```
 
 ---
 

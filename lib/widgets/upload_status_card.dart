@@ -7,7 +7,8 @@ class UploadStatusCard extends StatelessWidget {
   final String fileName;
   final String fileSize;
   final ShotState shotState;
-  final Animation<double> uploadAnimation;
+  final Animation<double>? uploadAnimation;
+  final double? progress;
   final VoidCallback onPickNewFile;
   final Color primaryColor;
   final Color completedColor;
@@ -19,7 +20,8 @@ class UploadStatusCard extends StatelessWidget {
     required this.fileName,
     required this.fileSize,
     required this.shotState,
-    required this.uploadAnimation,
+    this.uploadAnimation,
+    this.progress,
     required this.onPickNewFile,
     this.primaryColor = const Color(0xFFEE5A24),
     this.completedColor = const Color(0xFF2E7D32),
@@ -32,7 +34,7 @@ class UploadStatusCard extends StatelessWidget {
     final isDone = shotState == ShotState.completed;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
@@ -47,7 +49,7 @@ class UploadStatusCard extends StatelessWidget {
       child: Row(
         children: [
           const MiniPdfIcon(),
-          const SizedBox(width: 14),
+          const SizedBox(width: 10),
 
           // File Info
           Expanded(
@@ -58,7 +60,7 @@ class UploadStatusCard extends StatelessWidget {
                 Text(
                   fileName,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF1E232A),
                   ),
@@ -68,59 +70,80 @@ class UploadStatusCard extends StatelessWidget {
                 Text(
                   fileSize,
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 11,
                     color: Color(0xFF8A94A6),
                     fontWeight: FontWeight.w500,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 10),
 
           // Progress Bar with fine-grained animation builder
-          SizedBox(
-            width: 140,
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 90, maxWidth: 130),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (isDone) ...[
-                      Icon(
-                        Icons.check_circle_rounded,
-                        size: 15,
-                        color: completedColor,
-                      ),
-                      const SizedBox(width: 4),
-                    ],
-                    Text(
-                      isDone ? completedText : uploadingText,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: isDone ? completedColor : const Color(0xFF8A94A6),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
                 AnimatedBuilder(
-                  animation: uploadAnimation,
+                  animation: uploadAnimation ?? const AlwaysStoppedAnimation(0.0),
                   builder: (context, _) {
-                    final progress = isDone ? 1.0 : uploadAnimation.value;
-                    return ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        minHeight: 5,
-                        backgroundColor: const Color(0xFFEDF1F7),
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          isDone ? completedColor : primaryColor,
+                    final currentProgress = isDone
+                        ? 1.0
+                        : (progress ?? uploadAnimation?.value ?? 0.0);
+                    final pct = (currentProgress.clamp(0.0, 1.0) * 100).toInt();
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (isDone) ...[
+                              Icon(
+                                Icons.check_circle_rounded,
+                                size: 14,
+                                color: completedColor,
+                              ),
+                              const SizedBox(width: 3),
+                            ],
+                            Flexible(
+                              child: Text(
+                                isDone
+                                    ? completedText
+                                    : (progress != null
+                                        ? '$uploadingText $pct%'
+                                        : uploadingText),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDone
+                                      ? completedColor
+                                      : const Color(0xFF8A94A6),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: LinearProgressIndicator(
+                            value: currentProgress.clamp(0.0, 1.0),
+                            minHeight: 5,
+                            backgroundColor: const Color(0xFFEDF1F7),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              isDone ? completedColor : primaryColor,
+                            ),
+                          ),
+                        ),
+                      ],
                     );
                   },
                 ),
@@ -131,9 +154,11 @@ class UploadStatusCard extends StatelessWidget {
           // Replay button when finished
           if (isDone)
             Padding(
-              padding: const EdgeInsets.only(left: 8.0),
+              padding: const EdgeInsets.only(left: 4.0),
               child: IconButton(
-                icon: const Icon(Icons.replay_rounded, color: Color(0xFF5A6679)),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                icon: const Icon(Icons.replay_rounded, color: Color(0xFF5A6679), size: 20),
                 tooltip: "Upload another file",
                 onPressed: onPickNewFile,
               ),

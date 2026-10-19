@@ -1,6 +1,6 @@
 name: file_pick_animation
 description: A delightful interactive basketball shoot and drop file upload animation for Flutter apps with aiming trajectory, net swish physics, and progress bar.
-version: 0.0.1
+version: 0.0.2
 homepage: https://github.com/farzidahmed/file_pick_animations
 repository: https://github.com/farzidahmed/file_pick_animations
 issue_tracker: https://github.com/farzidahmed/file_pick_animations/issues

@@ -5,14 +5,15 @@ import 'basketball_file_picker.dart';
 export 'basketball_file_picker.dart';
 export 'file_pick_animation.dart';
 
-/// Backward-compatible widget class for [Test].
+/// Backward-compatible widget class for [FilePickAnimation].
 /// Delegates directly to [BasketballFilePicker].
-class Test extends StatelessWidget {
-  const Test({super.key});
+class FilePickAnimation extends StatelessWidget {
+  const FilePickAnimation({super.key});
 
   @override
   Widget build(BuildContext context) {
     return const BasketballFilePicker(
+      autoShootOnSelect: true,
       primaryColor: Color(0xFFEE5A24),
       trajectoryDotColor: Color(0xFFFA8B60),
     );

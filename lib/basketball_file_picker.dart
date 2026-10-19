@@ -56,15 +56,16 @@ class BasketballFilePicker extends StatefulWidget {
   /// Status text when upload progress finishes.
   final String completedText;
 
-  /// List of sample files to present in the selection sheet.
-  /// Set to empty `[]` to hide the sample files section completely.
+  /// Optional list of preset sample files to present in the selection sheet.
+  /// If null or empty (default), only the "Browse Files on Device" option is shown.
   final List<SampleFile>? sampleFiles;
 
-  /// Initial placeholder document name.
-  final String initialFileName;
+  /// Optional initial placeholder document name.
+  /// When null (default), the widget starts in an idle state prompting the user to pick a file.
+  final String? initialFileName;
 
-  /// Initial placeholder document size.
-  final String initialFileSize;
+  /// Optional initial placeholder document size.
+  final String? initialFileSize;
 
   /// Duration of the projectile arc flight animation.
   final Duration flightDuration;
@@ -87,6 +88,19 @@ class BasketballFilePicker extends StatefulWidget {
   /// Custom builder for the document widget. If null, the default folded PDF card is used.
   final Widget Function(BuildContext context, String fileName)? customDocumentBuilder;
 
+  /// Automatically launches the shoot animation towards the basket as soon
+  /// as a file is selected from either the device or the sample list.
+  ///
+  /// When set to `true`, users don't need to manually drag or tap to shoot.
+  final bool autoShootOnSelect;
+
+  /// Optional real-time upload progress stream emitting double values between `0.0` and `1.0`.
+  ///
+  /// When provided, the upload status card tracks this stream instead of using
+  /// the simulated [uploadDuration] timer. When the stream reaches `1.0` or completes,
+  /// the upload is marked as completed and [onUploadCompleted] is invoked.
+  final Stream<double>? uploadProgressStream;
+
   const BasketballFilePicker({
     super.key,
     this.onFileSelected,
@@ -103,8 +117,8 @@ class BasketballFilePicker extends StatefulWidget {
     this.uploadingText = "Uploading...",
     this.completedText = "Completed",
     this.sampleFiles,
-    this.initialFileName = "final_final_v7.pdf",
-    this.initialFileSize = "2.4 MB",
+    this.initialFileName,
+    this.initialFileSize,
     this.flightDuration = const Duration(milliseconds: 1000),
     this.uploadDuration = const Duration(milliseconds: 2200),
     this.showAppBar = true,
@@ -112,6 +126,8 @@ class BasketballFilePicker extends StatefulWidget {
     this.customAppBar,
     this.showDemoButton = true,
     this.customDocumentBuilder,
+    this.autoShootOnSelect = false,
+    this.uploadProgressStream,
   });
 
   @override
@@ -129,19 +145,21 @@ class BasketballFilePickerState extends State<BasketballFilePicker>
   late final AnimationController _pulseController;
 
   // ---------------------------------------------------------------------------
-  // Timers (Safely managed to prevent memory leaks on unmount)
+  // Timers & Subscriptions (Safely managed to prevent memory leaks on unmount)
   // ---------------------------------------------------------------------------
   Timer? _uploadDelayTimer;
   Timer? _missedResetTimer;
+  StreamSubscription<double>? _progressSubscription;
 
   // ---------------------------------------------------------------------------
   // State Variables
   // ---------------------------------------------------------------------------
-  ShotState _shotState = ShotState.aiming;
+  ShotState _shotState = ShotState.idle;
   bool _isDragging = false;
+  double? _realProgress;
 
-  late String _fileName;
-  late String _fileSize;
+  String? _fileName;
+  String? _fileSize;
   String? _filePath;
 
   // Dynamic layout coordinates
@@ -155,8 +173,15 @@ class BasketballFilePickerState extends State<BasketballFilePicker>
   @override
   void initState() {
     super.initState();
-    _fileName = widget.initialFileName;
-    _fileSize = widget.initialFileSize;
+    if (widget.initialFileName != null) {
+      _fileName = widget.initialFileName;
+      _fileSize = widget.initialFileSize ?? "";
+      _shotState = ShotState.aiming;
+    } else {
+      _fileName = null;
+      _fileSize = null;
+      _shotState = ShotState.idle;
+    }
     _initAnimationControllers();
   }
 
@@ -183,16 +208,7 @@ class BasketballFilePickerState extends State<BasketballFilePicker>
     );
     _uploadController.addStatusListener((status) {
       if (status == AnimationStatus.completed && mounted) {
-        setState(() {
-          _shotState = ShotState.completed;
-        });
-        widget.onUploadCompleted?.call(
-          SelectedFileData(
-            name: _fileName,
-            size: _fileSize,
-            path: _filePath,
-          ),
-        );
+        _completeUpload();
       }
     });
 
@@ -207,6 +223,8 @@ class BasketballFilePickerState extends State<BasketballFilePicker>
     _uploadDelayTimer = null;
     _missedResetTimer?.cancel();
     _missedResetTimer = null;
+    _progressSubscription?.cancel();
+    _progressSubscription = null;
   }
 
   @override
@@ -253,10 +271,7 @@ class BasketballFilePickerState extends State<BasketballFilePicker>
       _cancelTimers();
       _uploadDelayTimer = Timer(const Duration(milliseconds: 350), () {
         if (!mounted) return;
-        setState(() {
-          _shotState = ShotState.uploading;
-        });
-        _uploadController.forward(from: 0);
+        _startUploadPhase();
       });
     } else {
       setState(() {
@@ -279,8 +294,64 @@ class BasketballFilePickerState extends State<BasketballFilePicker>
     }
   }
 
+  /// Initiates the upload phase, either tracking real progress from [uploadProgressStream]
+  /// or using the simulated animation timer.
+  void _startUploadPhase() {
+    setState(() {
+      _shotState = ShotState.uploading;
+      _realProgress = widget.uploadProgressStream != null ? 0.0 : null;
+    });
+
+    if (widget.uploadProgressStream != null) {
+      _progressSubscription?.cancel();
+      _progressSubscription = widget.uploadProgressStream!.listen(
+        (progress) {
+          if (!mounted) return;
+          final clamped = progress.clamp(0.0, 1.0);
+          setState(() {
+            _realProgress = clamped;
+          });
+          if (clamped >= 1.0) {
+            _completeUpload();
+          }
+        },
+        onDone: () {
+          if (mounted && _shotState == ShotState.uploading) {
+            _completeUpload();
+          }
+        },
+        onError: (err) {
+          debugPrint("BasketballFilePicker: uploadProgressStream error: $err");
+        },
+      );
+    } else {
+      _uploadController.forward(from: 0);
+    }
+  }
+
+  /// Marks upload as completed and triggers the [onUploadCompleted] callback.
+  void _completeUpload() {
+    _cancelTimers();
+    if (!mounted) return;
+    setState(() {
+      _shotState = ShotState.completed;
+      _realProgress = 1.0;
+    });
+    widget.onUploadCompleted?.call(
+      SelectedFileData(
+        name: _fileName ?? "document.pdf",
+        size: _fileSize ?? "",
+        path: _filePath,
+      ),
+    );
+  }
+
   /// Launch the projectile flight sequence along the aimed trajectory.
   void launchShot() {
+    if (_fileName == null) {
+      pickFile();
+      return;
+    }
     if (_shotState != ShotState.aiming) return;
     setState(() {
       _shotState = ShotState.flying;
@@ -297,12 +368,18 @@ class BasketballFilePickerState extends State<BasketballFilePicker>
 
     if (!mounted) return;
     setState(() {
-      _shotState = ShotState.aiming;
+      _shotState = _fileName != null ? ShotState.aiming : ShotState.idle;
+      _realProgress = null;
     });
   }
 
   /// Demonstration helper that snaps the target position directly to the basket and shoots.
   void snapToBasketAndShoot() {
+    if (_fileName == null) {
+      _fileName = "demo_document.pdf";
+      _fileSize = "1.5 MB";
+      _shotState = ShotState.aiming;
+    }
     setState(() {
       _targetPos = _basketPos;
     });
@@ -320,7 +397,8 @@ class BasketballFilePickerState extends State<BasketballFilePicker>
       _fileName = name;
       _fileSize = size;
       _filePath = path;
-      resetShot();
+      _shotState = ShotState.aiming;
+      _realProgress = null;
     });
 
     final fileData = SelectedFileData(
@@ -333,11 +411,24 @@ class BasketballFilePickerState extends State<BasketballFilePicker>
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text("📄 Selected: $name ($size) — Ready to shoot! 🏀"),
+        content: Text(
+          widget.autoShootOnSelect
+              ? "📄 Selected: $name ($size) — Auto shooting into basket! 🏀"
+              : "📄 Selected: $name ($size) — Ready to shoot! 🏀",
+        ),
         backgroundColor: widget.primaryColor,
         duration: const Duration(seconds: 2),
       ),
     );
+
+    // If autoShootOnSelect is enabled, fire the shot automatically after frame renders
+    if (widget.autoShootOnSelect) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _shotState == ShotState.aiming) {
+          snapToBasketAndShoot();
+        }
+      });
+    }
   }
 
   /// Opens the PDF selection bottom sheet modal.
@@ -349,7 +440,7 @@ class BasketballFilePickerState extends State<BasketballFilePicker>
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (sheetContext) => PdfPickerBottomSheet(
-        currentFileName: _fileName,
+        currentFileName: _fileName ?? "",
         primaryColor: widget.primaryColor,
         sampleFiles: widget.sampleFiles,
         onPdfSelected: (name, size) {
@@ -461,15 +552,17 @@ class BasketballFilePickerState extends State<BasketballFilePicker>
                 ),
               ),
 
-              // 2. Trajectory Dotted Arc
+              // 2. Trajectory Dotted Arc (isolated in RepaintBoundary for 60fps on low-end devices)
               if (_shotState == ShotState.aiming || _shotState == ShotState.flying)
                 Positioned.fill(
-                  child: TrajectoryArc(
-                    startPos: _startPos,
-                    targetPos: _targetPos,
-                    flightAnimation: _flightController,
-                    isFlying: _shotState == ShotState.flying,
-                    dotColor: widget.trajectoryDotColor,
+                  child: RepaintBoundary(
+                    child: TrajectoryArc(
+                      startPos: _startPos,
+                      targetPos: _targetPos,
+                      flightAnimation: _flightController,
+                      isFlying: _shotState == ShotState.flying,
+                      dotColor: widget.trajectoryDotColor,
+                    ),
                   ),
                 ),
 
@@ -478,57 +571,74 @@ class BasketballFilePickerState extends State<BasketballFilePicker>
                 top: _basketPos.dy - (_hoopHeight / 2),
                 left: _basketPos.dx - (_hoopWidth / 2),
                 child: IgnorePointer(
-                  child: HoopRim(
-                    width: _hoopWidth,
-                    height: _hoopHeight,
-                    frontOnly: true,
-                    rimColor: widget.primaryColor,
+                  child: RepaintBoundary(
+                    child: HoopRim(
+                      width: _hoopWidth,
+                      height: _hoopHeight,
+                      frontOnly: true,
+                      rimColor: widget.primaryColor,
+                    ),
                   ),
                 ),
               ),
 
-              // 4. Interactive Draggable or Flying PDF Document
-              if (_shotState == ShotState.aiming)
+              // 4. Interactive Draggable or Flying PDF Document, or Empty Launch Pad
+              if (_shotState == ShotState.idle)
                 Positioned(
                   left: _startPos.dx - 35,
                   top: _startPos.dy - 45,
-                  child: DraggablePdfLauncher(
-                    fileName: _fileName,
-                    isDragging: _isDragging,
-                    pulseAnimation: _pulseController,
-                    onPanStart: (_) => setState(() => _isDragging = true),
-                    onPanUpdate: (details) {
-                      setState(() {
-                        final newTarget = _targetPos + details.delta;
-                        _targetPos = Offset(
-                          newTarget.dx.clamp(40.0, size.width - 40.0),
-                          newTarget.dy.clamp(120.0, size.height - 100.0),
-                        );
-                      });
-                    },
-                    onPanEnd: (_) {
-                      setState(() => _isDragging = false);
-                      launchShot();
-                    },
-                    onTap: launchShot,
+                  child: RepaintBoundary(
+                    child: EmptyLaunchPad(
+                      primaryColor: widget.primaryColor,
+                      pulseAnimation: _pulseController,
+                      onTap: pickFile,
+                    ),
+                  ),
+                )
+              else if (_shotState == ShotState.aiming)
+                Positioned(
+                  left: _startPos.dx - 35,
+                  top: _startPos.dy - 45,
+                  child: RepaintBoundary(
+                    child: DraggablePdfLauncher(
+                      fileName: _fileName ?? "document.pdf",
+                      isDragging: _isDragging,
+                      pulseAnimation: _pulseController,
+                      onPanStart: (_) => setState(() => _isDragging = true),
+                      onPanUpdate: (details) {
+                        setState(() {
+                          final newTarget = _targetPos + details.delta;
+                          _targetPos = Offset(
+                            newTarget.dx.clamp(40.0, size.width - 40.0),
+                            newTarget.dy.clamp(120.0, size.height - 100.0),
+                          );
+                        });
+                      },
+                      onPanEnd: (_) {
+                        setState(() => _isDragging = false);
+                        launchShot();
+                      },
+                      onTap: launchShot,
+                    ),
                   ),
                 )
               else if (_shotState == ShotState.flying || _shotState == ShotState.missed)
                 FlyingPdfDocument(
-                  fileName: _fileName,
+                  fileName: _fileName ?? "document.pdf",
                   startPos: _startPos,
                   targetPos: _targetPos,
                   flightAnimation: _flightController,
                   isMissed: _shotState == ShotState.missed,
                 ),
 
-              // 5. Aiming Hint Badge
-              if (_shotState == ShotState.aiming)
+              // 5. Aiming / Selection Hint Badge
+              if (_shotState == ShotState.idle || _shotState == ShotState.aiming)
                 Positioned(
                   bottom: 30,
                   left: 20,
                   right: 20,
                   child: AimingHintBadge(
+                    isIdle: _shotState == ShotState.idle,
                     isAimedAtBasket: isAimedAtBasket,
                     primaryColor: widget.primaryColor,
                     aimPrompt: widget.aimPrompt,
@@ -545,10 +655,13 @@ class BasketballFilePickerState extends State<BasketballFilePicker>
                   left: 20,
                   right: 20,
                   child: UploadStatusCard(
-                    fileName: _fileName,
-                    fileSize: _fileSize,
+                    fileName: _fileName ?? "document.pdf",
+                    fileSize: _fileSize ?? "",
                     shotState: _shotState,
-                    uploadAnimation: _uploadController,
+                    uploadAnimation: widget.uploadProgressStream == null
+                        ? _uploadController
+                        : null,
+                    progress: _realProgress,
                     onPickNewFile: pickFile,
                     primaryColor: widget.primaryColor,
                     uploadingText: widget.uploadingText,

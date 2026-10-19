@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFEE5A24)),
         useMaterial3: true,
       ),
-      home: const Test(),
+      home: const FilePickAnimation(),
     );
   }
 }
